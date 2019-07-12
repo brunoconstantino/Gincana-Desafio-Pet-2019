@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>PI UNIVESP</title>
+        <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDF8wCHDz2lJDb23i2Yg0IqKYpjIOjlKDs"></script>
+        <link rel="shortcut icon" href="favicon.png" />
+        <style type="text/css">
+        <!--
+        * {
+            padding: 0;
+            margin: 0;
+            list-style-type: none;
+        }
+        *, *:before, *:after {
+          box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+            overflow: auto;
+            font-family: Arial;
+        }
+        #filtros {
+            height: 35px;
+        }
+        
+        #filtros input[type="text"] {
+            width: inherit;
+            height: 25px;
+        }
+        #resultados {
+            margin-top: 10px;
+            border: 1px solid rgba(0,0,0,0.4);
+        }
+        #resultados li {
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+        #resultados li:hover {
+            background-color: #ccc;
+        }
+        #resultados li a {
+            color: #000;
+            text-decoration: none;
+        }
+        #filtros, #resultados {
+            width: 100%;
+            position: relative; 
+        }
+        .cabecalho {
+            height: 100px;
+            display: block;
+            vertical-align: center;
+        }
+        .cabecalho img {
+            height: 100px;
+            float: left;
+        }
+        .linha {
+            clear: both;
+        }
+        .centro {
+            text-align: center;
+            margin: 0px auto;
+        }
+        .colunas {
+            width: 49%;
+            display: inline-block;
+        }
+        /* Mobile */
+        @media screen and (max-width: 540px) {
+            .cabecalho {
+                height: 80px;
+            }
+            .cabecalho img {
+                height: 80px;
+            }
+            .colunas {
+                width: 100%;
+                display: block;
+                height: auto;
+            }
+            #resultados {
+                max-height: calc( 35% - 80px );
+                overflow-y: auto;
+                position: absolute;
+            }
+            #mapa {
+                height: calc( 70% - 80px );
+                bottom: 0px;
+                position: absolute;
+            }
+            .cabecalho h1 {
+                font-size: 0.9rem;
+                padding-top: 15px;
+            }
+        }
+        @media screen and (min-width: 541px) {
+            .colunas {
+                /* 100% - 100px cabecalho */
+                height: calc( 100% - 100px );
+                min-height: calc( 100% - 100px );
+                vertical-align: top;
+                position: absolute;
+            }
+            #mapa {
+                right: 0px;
+                height: calc( 100% - 100px );
+            }
+            #resultados {
+                /* 45px filtros */
+                height: calc( 100% - 45px );
+                overflow: auto;
+                position: relative;
+            }
+        }
+        -->
+        </style>
+    </head>
+    <body>
+        <div class="cabecalho linha centro">
+            <a href="https://univesp.br/" target="_blank">
+                <img src="https://apps.univesp.br/common/colorida-positiva.svg" alt="Link para site institucional. Logotipo da universidade formado pela palavra Univesp em letras maiúsculas, sendo a letra V estilizada.">
+                <!-- outras opções de img src: colorida-negativa.svg, traco-positiva.svg, traco-negativa.svg -->
+            </a>
+            <h1>Locais de descarte de Plástico PET</h1>
+            <a href="https://piracaia.sp.gov.br/post/gincana-desafio-pet-2019$9990">
+            Gincana Desafio PET 2019
+            </a>
+        </div>
+        <div class="linha">
+            <div id="lateral" class="colunas">
+                <div id="filtros">
+                    <input type="text" onkeyup="pesquisarLocal(this.value);" placeholder="Pesquisar por nome do local" />
+                </div>
+                <div id="resultados"></div>
+            </div>
+            <div id="mapa" class="colunas"></div>
+        </div>
+        <script type="text/javascript">
+        <!--
+            var features;
+            var map;
+            var markers = [];
+            var infoWindow;
+            
+            var iconBase = 'https://maps.google.com/mapfiles/kml/pushpin/';
+            var icons = {
+              usuario: {
+                icon: iconBase + 'red-pushpin.png'
+              },
+              escola: {
+                icon: iconBase + 'blue-pushpin.png'
+              }
+            };
+                
+            function centralizarLocal(markerName) {
+                var marker = markers.filter(function(val, i){
+                    if(val.name == markerName)
+                        return true;
+                })[0];
+                map.setCenter(marker.getPosition());
+                // Optional
+                if(infoWindow) infoWindow.close();
+                infoWindow = new google.maps.InfoWindow({
+                    content: marker.name
+                });
+                infoWindow.open(map, marker);
+                // Optional
+            }
+            
+            function pesquisarLocal(inpTexto) {
+                //var pesquisarTexto = elem.value;
+                var pesquisarTexto = inpTexto.toUpperCase();
+                
+                var resultados = markers.filter(function(val, index) {
+                    //console.log(val.getPosition());
+                    if(val.name.toUpperCase().indexOf(pesquisarTexto)>=0)
+                        return true;
+                });
+                
+                var searchHTML = "<ul>";
+                var item;
+                for(var i=0; i<resultados.length;i++) {
+                    item = resultados[i];
+                    searchHTML += "<li><a href='javascript: centralizarLocal(\""+item.name+"\")'>"+item.name+"</a></li>";
+                }
+                searchHTML += "</ul>";
+                document.getElementById("resultados").innerHTML = searchHTML;
+                //console.log(searchHTML);
+            }
+            
+            function carregarMapa(){
+                var opcoesMapa = {
+                    center: new google.maps.LatLng(-23.04631, -46.37850),
+                    zoom: 13,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP,
+                    zoomControl: false
+                };
+                
+                map = new google.maps.Map(document.getElementById("mapa"), opcoesMapa);		
+                
+                
+                function addMarker(feature) {
+                    var marker = new google.maps.Marker({
+                        position: feature.position,
+                        name: feature.name,
+                        title: feature.name,
+                        icon: icons[feature.type].icon,
+                        map: map
+                    });
+                    
+                    marker.addListener('click', function() {
+                        var contentString = '<div id="content">'+
+                            '<h1 id="firstHeading" class="firstHeading">' + feature.name + '</h1>'+
+                            '<div id="bodyContent">'+
+                            '<p><b>Endere&ccedil;o:</b> ' + feature.endereco +
+                            '</p></div></div>';
+                        if(infoWindow) infoWindow.close();
+                        infoWindow = new google.maps.InfoWindow({
+                          content: contentString
+                        });
+                      infoWindow.open(map, marker);
+                    });
+                    markers.push(marker);
+                }
+                
+                // defined globally
+                features = [
+                  {
+                    position: new google.maps.LatLng(-23.0618197,-46.3495954), // ok
+                    name: 'ESCOLA ALZIRO',
+                    endereco: 'Rua Samuel Maia da Silva, 345 - Morro Vermelho',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0751223,-46.3984984), // ok
+                    name: 'ESCOLA AMARO',
+                    endereco: 'Rua Projetada 1, Vila dos Pereiras',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0527974,-46.36448), //ok
+                    name: 'ESCOLA ANESIO',
+                    endereco: 'Rua Guilherme Leo, 252 - Centro',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0903987,-46.4155972), //ok
+                    name: 'ESCOLA ANTONIO TELES',
+                    endereco: 'Rua Amapá, 10 - Batatuba',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0487102,-46.3421744), //ok
+                    name: 'ESCOLA DORA RAMOS',
+                    endereco: 'Avenida Hebert Lambert Zago, 840 - Pouso Alegre',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0798834,-46.4320638),  // ok
+                    name: 'ESCOLA ESTACAO DE CANEDOS',
+                    endereco: 'Estrada da Pedra Rica, 140 - Canedos',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0833126,-46.2420878),  // ok
+                    name: 'ESCOLA EURIDES BADARI',
+                    endereco: 'EMEB (R) Bairro do Piao ',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0661878,-46.3785623), // ok
+                    name: 'ESCOLA IRINEU',
+                    endereco: 'Avenida Veneza, s/n° - San Marino',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0507802,-46.3631015), //ok
+                    name: 'ESCOLA LEONOR',
+                    endereco: 'Avenida Francisco Goncalves Bueno, 121 - Centro',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0494083,-46.3484129), //ok
+                    name: 'ESCOLA MARIA ELOYSA',
+                    endereco: 'Rua Jose Bueno, 20 - Vila Sabesp',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.008748,-46.3909443), // ok
+                    name: 'ESCOLA MARIA HELENA',
+                    endereco: 'Bairro do Pinhal',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0905422,-46.4158981), // ok
+                    name: 'ESCOLA MARIE BATA',
+                    endereco: 'Rua Amapa - Batatuba',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0639628,-46.3789442), // ok
+                    name: 'ESCOLA ORLANDO JULIO',
+                    endereco: 'Avenida Roma, 300 - Parque San Marino',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.050337,-46.3465154), //ok
+                    name: 'ESCOLA PRIMEIROS PASSOS',
+                    endereco: 'Avenida Jose Leite Pecanha - Jardim Capuava',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0524043,-46.3634291), //ok
+                    name: 'ESCOLA SANTO ANTONIO',
+                    endereco: 'R. Guilherme Léo, 140 - Centro',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0517117,-46.3789308), //ok
+                    name: 'ESCOLA SYLVIA AMALIA',
+                    endereco: 'Rua Liliana Cinelli Barros - Cachoeira Abaixo',
+                    type: 'escola'
+                  }, {
+                    position: new google.maps.LatLng(-23.0552153,-46.3583678), //ok
+                    name: 'ESCOLA THOMAZ',
+                    endereco: 'Avenida Dr Candido Rodrigues, 100 - Centro',
+                    type: 'escola'
+                  }
+                ];
+
+                var feature;
+                for (var i = 0; i<features.length; i++) {
+                  feature = features[i];
+                  addMarker(feature);
+                }
+                
+                // Try HTML5 geolocation.
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(function(position) {
+                    var pos = {
+                      lat: position.coords.latitude,
+                      lng: position.coords.longitude
+                    };
+
+                    //infoWindow.setPosition(pos);
+                    //infoWindow.setContent('Location found.');
+                    //infoWindow.open(map);
+                    map.setCenter(pos);
+                    var feature = {
+                        position: pos,
+                        name: 'Seu local atual',
+                        endereco: '',
+                        type: 'usuario'
+                    }
+                    addMarker(feature);
+                  }, function() {
+                    //handleLocationError(true, infoWindow, map.getCenter());
+                  });
+                } else {
+                  // Browser doesn't support Geolocation
+                  //handleLocationError(false, infoWindow, map.getCenter());
+                }
+
+            }
+
+            /*function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+                infoWindow.setPosition(pos);
+                infoWindow.setContent(browserHasGeolocation ?
+                    'Error: The Geolocation service failed.' :
+                    'Error: Your browser doesn\'t support geolocation.');
+                infoWindow.open(map);
+            }*/
+            google.maps.event.addDomListener(window, 'load', carregarMapa);
+            window.onload = function() {
+                pesquisarLocal('');
+            };
+        -->
+        </script>
+    </body>
+</html>
